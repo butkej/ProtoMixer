@@ -103,7 +103,7 @@ model = model.ProtoMixer(
     num_tokens=8,
     hidden_dim=2048,
     num_layers=12,
-    num_classes=2,
+    num_classes=3,
     dropout=0.5,
     pool="mean",
     domain_num=len(domain_labels),
@@ -310,7 +310,7 @@ def test(model, device, loss_fn, test_dl, output_file=None):
 # RUN TRAINING
 
 
-def run_training(model, epochs, train_dl, val_dl, fold, type):
+def run_training(model, epochs, train_dl, val_dl, fold, experiment):
     # device = "cuda:0" # only for training cost benchmarking
     device = "cuda"
     DA_rate = 0.001
@@ -321,7 +321,7 @@ def run_training(model, epochs, train_dl, val_dl, fold, type):
     reset_all_weights(model)
 
     loss_fn = nn.CrossEntropyLoss()
-    if type == "Mixer":
+    if experiment == "Mixer":
         optimizer = optim.SGD(
             model.parameters(),
             lr=0.0001,
@@ -329,7 +329,7 @@ def run_training(model, epochs, train_dl, val_dl, fold, type):
             weight_decay=0.0,
             nesterov=False,
         )
-    elif type == "CLAM":
+    elif experiment == "CLAM":
         optimizer = optim.Adam(
             model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0
         )
@@ -346,11 +346,11 @@ def run_training(model, epochs, train_dl, val_dl, fold, type):
         else:
             lamda = 0  # w/o domain adversarial branch
         # training
-        if type == "Mixer":
+        if experiment == "Mixer":
             class_loss, domain_loss, train_acc = train(
                 model, device, loss_fn, optimizer, train_dl, lamda
             )
-        elif type == "CLAM":
+        elif experiment == "CLAM":
             class_loss, domain_loss, train_acc = train_clam(
                 model, device, loss_fn, optimizer, train_dl
             )
@@ -412,7 +412,7 @@ def run_training(model, epochs, train_dl, val_dl, fold, type):
 # CROSS VALIDATION
 
 
-def cross_val(model, dataset, folds, epochs, type):
+def cross_val(model, dataset, folds, epochs, experiment):
     from sklearn.model_selection import StratifiedKFold
     from torch.utils.data import DataLoader
 
@@ -435,7 +435,9 @@ def cross_val(model, dataset, folds, epochs, type):
         train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
         val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
-        history = run_training(model, epochs, train_dl, val_dl, fold=fold, type="Mixer")
+        history = run_training(
+            model, epochs, train_dl, val_dl, fold=fold, experiment=experiment
+        )
         all_histories["Fold_" + str(fold)] = history
 
     return all_histories
@@ -445,7 +447,7 @@ def cross_val(model, dataset, folds, epochs, type):
 
 EPOCHS = 100
 RUNS = 5
-TYPE = "Mixer"
+EXPERIMENT = "Mixer"
 target_folder = "logs/"
 log_name = f"5_fold_cv_{EPOCHS}_epochs_EXPERIMENT_NAME.csv"
 
@@ -483,5 +485,7 @@ for run in range(RUNS):
     f2.close()
     # run
     print(f"RUN {run}")
-    cv_history = cross_val(model, dataset, folds=5, epochs=EPOCHS, type=TYPE)
+    cv_history = cross_val(
+        model, dataset, folds=5, epochs=EPOCHS, experiment=EXPERIMENT
+    )
     np.save(f"logs/cv_history_{log_name.split('.')[0]}_run_{run}", cv_history)

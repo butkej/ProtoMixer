@@ -9,7 +9,7 @@ Accepted to and presented at the 14th INTERNATIONAL CONFERENCE ON MACHINE LEARNI
 ## Overview
 This repo contains the Python code for the formulation of a MLP-Mixer-like architecture for application to the domain of computational pathology.
 
-[!Overview of ProtoMixer](pathomix-rev-3.png)
+![Overview of ProtoMixer](pathomix-rev-3.png)
 
 
 ## Citation
